@@ -33,6 +33,8 @@ export default function Pong() {
   const [startTime, setStartTime] = useState<number>(0);
 
   let animationId: number;
+      let serverTimeOffset = 0
+
 
   let ballSpeedX = 0;
   let ballSpeedY = 0;
@@ -48,19 +50,25 @@ export default function Pong() {
     if (playerNameLocal && playerNameLocal != '') setPlayerName(playerNameLocal);
 
 
-        const width = canvas.width
-    const height = canvas.height
+    //to sync time with server
+    const offsetRef = ref(database, ".info/serverTimeOffset")
+    onValue(offsetRef, (snapshot) => {
+      serverTimeOffset = snapshot.val() || 0
+      console.log("Server time offset: " + serverTimeOffset + "ms")
+    })
 
-        const testLoop = () => {
-              ctx.fillStyle = 'white'
-        ctx.fillRect(0, 0, width, height)
-        ctx.fillStyle = 'slategray'
-        ctx.font = '30px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(Math.ceil((Date.now()) / 1000) +'', width / 2, height / 2);
-        animationId = requestAnimationFrame(testLoop)
-    }
-    testLoop();
+    const width = canvas.width
+    const height = canvas.height
+    // const testLoop = () => {
+    //   ctx.fillStyle = 'white'
+    //   ctx.fillRect(0, 0, width, height)
+    //   ctx.fillStyle = 'slategray'
+    //   ctx.font = 'bold 100px Arial';
+    //   ctx.textAlign = 'center';
+    //   ctx.fillText((Math.ceil((Date.now()+ serverTimeOffset) / 1000))%60 + '', width / 2, height / 2);
+    //   animationId = requestAnimationFrame(testLoop)
+    // }
+    // testLoop();
 
 
 
@@ -124,18 +132,19 @@ export default function Pong() {
       setStartTime(data.startTime);
     })
 
+    // if(!iAmHost) ctx.rotate(Math.PI)
 
 
     const loop = () => {
 
-      if (Date.now() < startTime) {
-      // if(true)
+      if ((Date.now()+serverTimeOffset) < startTime) {
+        // if(true)
         ctx.fillStyle = 'white'
         ctx.fillRect(0, 0, width, height)
         ctx.fillStyle = 'slategray'
-        ctx.font = '30px Arial';
+        ctx.font = 'bold 100px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('Game starting in ' + Math.ceil((startTime - Date.now()) / 1000) + '...', width / 2, height / 2);
+        ctx.fillText(+ Math.ceil((startTime - (Date.now() + serverTimeOffset)) / 1000) + '', width / 2, height / 2);
         animationId = requestAnimationFrame(loop)
         return
       }
@@ -208,17 +217,15 @@ export default function Pong() {
     }
 
 
-    console.log(startTime);
-    
-    if (startTime > 0) {
 
+    if (startTime > 0) {
       loop();
     }
     else {
       cancelAnimationFrame(animationId);
     }
 
-  }, [roomID,startTime])
+  }, [roomID, startTime])
 
 
 
@@ -330,7 +337,7 @@ export default function Pong() {
             <button className="px-4 py-2 bg-green-200 text-slate-700 rounded cursor-pointer hover:border-slate-500 border-transparent border-2 font-semibold disabled:border-transparent disabled:text-slate-500" disabled={player2 == ''} onClick={() => {
               update(ref(database, 'rooms/' + roomID), {
                 start: true,
-                startTime: (Math.floor(Date.now() / 1000) * 1000) + 10000 //5 seconds from now
+                startTime: (Math.floor((Date.now()+ serverTimeOffset )/ 1000) * 1000) + 5000 //5 seconds from now
               }).then(() => {
                 // alert("Game Started!")
               })
