@@ -17,9 +17,13 @@ export default function PongClient() {
 
 
     // const socket = io(window.location.href.slice(0,-5)+':3001')
-    const socket = io((window.location.hostname.includes('localhost') ? 'http://localhost:3001' : (window.location.href.slice(0,-5)+':3001')))
-    console.log((window.location.hostname.includes('localhost') ? 'http://localhost:3001' : (window.location.href.slice(0,-5)+':3001')));
-    
+    const socket = io(
+      window.location.hostname.includes("localhost")
+        ? "http://localhost:3001"
+        : `${window.location.origin.replace(/\/$/, "")}/api/socket`
+    );
+    console.log(`${window.location.origin.replace(/\/$/, "")}/api/socket`);
+
     setSocket(socket)
 
     socket.emit("join_room", "123");
@@ -70,15 +74,15 @@ export default function PongClient() {
     ctx.arc(gameState.ball.x % 420, gameState.ball.y % 600, 8, 0, Math.PI * 2)
     ctx.fill();
 
-  }, [gameState,socket]) //redraw on gamestate change
+  }, [gameState, socket]) //redraw on gamestate change
 
 
   return (
     <div className="w-full h-full items-center justify-center flex">
-      <button className="border" onClick={()=>{
+      <button className="border" onClick={() => {
         socket.emit("test", "hello from client")
       }}>Click</button>
-      <canvas 
+      <canvas
         ref={canvasRef}
         width={500}
         height={600}
