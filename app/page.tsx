@@ -33,7 +33,7 @@ export default function Pong() {
   const [startTime, setStartTime] = useState<number>(0);
 
   let animationId: number;
-      let serverTimeOffset = 0
+  let serverTimeOffset = 0
 
 
   let ballSpeedX = 0;
@@ -71,12 +71,24 @@ export default function Pong() {
     // testLoop();
 
 
+    // initial Title
+    ctx.fillStyle = 'white'
+    ctx.fillRect(0, 0, width, height)
+    ctx.fillStyle = 'slategray'
+    ctx.font = 'bold 200px courier';
+    ctx.textAlign = 'center';
+    ctx.fillText('Pong', width / 2, height / 2);
+
+
+
 
     if (roomID == 0) return;
+
     //things after roomID is set
 
     checkPlayerPresence(roomID, iAmHost ? 1 : 2);
     //setting players
+
     const roomRef = ref(database, 'rooms/' + roomID);
     onValue(roomRef, (snapshot) => {
       const data = snapshot.val();
@@ -129,15 +141,24 @@ export default function Pong() {
 
     onValue(ref(database, "rooms/" + roomID), (snapshot) => {
       const data = snapshot.val();
-      setStartTime(data.startTime);
+      if (data && data.startTime)
+        setStartTime(data.startTime);
+
     })
 
-    // if(!iAmHost) ctx.rotate(Math.PI)
+    //top paddle value from database
+    onValue(ref(database, "rooms/" + roomID + '/players/' + (iAmHost ? 2 : 1) + '/position'), (snapshot) => {
+      const data = snapshot.val();
+      if (data)
+        topPaddleX = (data * -1) + 420; //mirroring for better experience
+      else return
+    });
+
 
 
     const loop = () => {
 
-      if ((Date.now()+serverTimeOffset) < startTime) {
+      if ((Date.now() + serverTimeOffset) < startTime) {
         // if(true)
         ctx.fillStyle = 'white'
         ctx.fillRect(0, 0, width, height)
@@ -150,8 +171,8 @@ export default function Pong() {
       }
       // if(player1 == playerName) setIAmHost(true);
       // Update ball position
-      ballX += ballSpeedX
-      ballY += ballSpeedY
+      ballX += ballSpeedX * (iAmHost ? 1 : -1) //reverse for non-host
+      ballY += ballSpeedY * (iAmHost ? 1 : -1) //reverse for non-host
 
       // Bounce left/right
       if (ballX < 0 || ballX > width) ballSpeedX *= -1
@@ -179,28 +200,19 @@ export default function Pong() {
         // ballSpeedX = (Math.random() < 0.5 ? -1 : 1) * (Math.floor(Math.random() * 4) + 2);
       }
 
+
+      function movePaddlePosition(direction: number) {
+        bottomPaddleX += direction * 6;
+        bottomPaddleX = Math.max(0, Math.min(width - paddleWidth, bottomPaddleX)); //clamp
+        update(ref(database, "rooms/" + roomID + '/players/' + (iAmHost ? 1 : 2)), { position: bottomPaddleX });
+      }
+
       // Move paddles
-      if (keyState['ArrowLeft']) bottomPaddleX -= 6
-      if (keyState['ArrowRight']) bottomPaddleX += 6
-
-      //top paddle value from database
-      onValue(ref(database, "rooms/" + roomID + '/players/' + (iAmHost ? 2 : 1) + '/position'), (snapshot) => {
-        const data = snapshot.val();
-        if (data)
-          topPaddleX = data;
-        else return
-      });
-
-      // console.log(playerName ,player1 , adminBool);
-
-      update(ref(database, "rooms/" + roomID + '/players/' + (iAmHost ? 1 : 2)), { position: bottomPaddleX });
-
-      // console.log(topPaddleX,bottomPaddleX);
+      if (keyState['ArrowLeft']) movePaddlePosition(-1)
+      if (keyState['ArrowRight']) movePaddlePosition(1)
 
 
-      // Clamp paddles
-      topPaddleX = Math.max(0, Math.min(width - paddleWidth, topPaddleX))
-      bottomPaddleX = Math.max(0, Math.min(width - paddleWidth, bottomPaddleX))
+
 
       // Draw
       ctx.fillStyle = 'white'
@@ -273,7 +285,7 @@ export default function Pong() {
                       alert("Room ID already exists. Please choose a different ID.")
                     } else {
                       set(ref(database, 'rooms/' + roomId), {
-                        start: false,
+                        // start: false,
                         players: {
                           1: {
                             name: playerName, status: true,
@@ -336,10 +348,12 @@ export default function Pong() {
           <div className='flex gap-2'>
             <button className="px-4 py-2 bg-green-200 text-slate-700 rounded cursor-pointer hover:border-slate-500 border-transparent border-2 font-semibold disabled:border-transparent disabled:text-slate-500" disabled={player2 == ''} onClick={() => {
               update(ref(database, 'rooms/' + roomID), {
-                start: true,
-                startTime: (Math.floor((Date.now()+ serverTimeOffset )/ 1000) * 1000) + 5000 //5 seconds from now
+                // start: true,
+                startTime: (Math.floor((Date.now() + serverTimeOffset) / 1000) * 1000) + 3000 //3 seconds from now
               }).then(() => {
                 // alert("Game Started!")
+                update(ref(database, 'rooms/' + roomID), {})
+
               })
             }}>Start Game</button>
             <button className={`px-4 py-2 bg-red-200 text-slate-700 rounded cursor-pointer hover:border-slate-500 border-transparent border-2 font-semibold `} onClick={() => {
@@ -353,11 +367,11 @@ export default function Pong() {
               })
 
             }}>Close Room</button>
-            <button className={`px-4 py-2 bg-red-200 text-slate-700 rounded cursor-pointer hover:border-slate-500 border-transparent border-2 font-semibold `} onClick={() => {
+            {/* <button className={`px-4 py-2 bg-red-200 text-slate-700 rounded cursor-pointer hover:border-slate-500 border-transparent border-2 font-semibold `} onClick={() => {
               update(ref(database, 'rooms/' + roomID), { start: false }).then(() => {
                 cancelAnimationFrame(animationId);
               })
-            }}>Stop</button>
+            }}>Stop</button> */}
 
           </div>
           :
