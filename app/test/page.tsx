@@ -16,7 +16,10 @@ export default function PongClient() {
     window.addEventListener('keyup', (e) => (keyState.current[e.key] = false))
 
 
-    const socket = io('http://localhost:3001')
+    // const socket = io(window.location.href.slice(0,-5)+':3001')
+    const socket = io((window.location.hostname.includes('localhost') ? 'http://localhost:3001' : (window.location.href.slice(0,-5)+':3001')))
+    console.log((window.location.hostname.includes('localhost') ? 'http://localhost:3001' : (window.location.href.slice(0,-5)+':3001')));
+    
     setSocket(socket)
 
     socket.emit("join_room", "123");
